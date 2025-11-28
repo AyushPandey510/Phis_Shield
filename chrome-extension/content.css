@@ -1,0 +1,445 @@
+/* PhisGuard Content Script Styles */
+
+.phisguard-indicator {
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 14px;
+  cursor: help;
+  vertical-align: middle;
+  transition: opacity 0.2s ease;
+}
+
+.phisguard-link.high-risk {
+  border: 2px solid #ff4444 !important;
+  background-color: #ffeaea !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  position: relative;
+}
+
+.phisguard-link.medium-risk {
+  border: 2px solid #ffaa00 !important;
+  background-color: #fff5ea !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  position: relative;
+}
+
+.phisguard-link.safe {
+  border: 1px solid #44ff44 !important;
+  background-color: #eaffea !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  position: relative;
+}
+
+.phisguard-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 10000;
+  max-width: 300px;
+  word-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: none;
+}
+
+.phisguard-tooltip.show {
+  opacity: 1;
+}
+
+.phisguard-quick-action {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  vertical-align: middle;
+}
+
+.phisguard-quick-action:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-1px);
+}
+
+.phisguard-quick-action:active {
+  transform: translateY(0);
+}
+
+/* Animation for indicators */
+@keyframes phisguard-fade-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.phisguard-indicator {
+  animation: phisguard-fade-in 0.3s ease-out;
+}
+
+/* Gmail Email Warning Styles */
+.phisguard-email-warning {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  position: relative;
+  animation: phisguard-fade-in 0.3s ease-out;
+}
+
+.phisguard-email-warning.high-risk {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+.phisguard-email-warning.medium-risk {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-color: #ffc107;
+  color: #856404;
+}
+
+.phisguard-email-warning.safe {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border-color: #28a745;
+  color: #155724;
+}
+
+.phisguard-email-warning-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phisguard-email-warning-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.phisguard-email-warning-text {
+  flex: 1;
+  font-weight: 600;
+}
+
+.phisguard-email-details-btn {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: inherit;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.phisguard-email-details-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced Warning Banner Styles */
+#phisguard-warning-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 3px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  animation: phisguard-slide-down 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes phisguard-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.phisguard-warning-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.phisguard-warning-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.phisguard-warning-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.phisguard-warning-title {
+  font-weight: 600;
+  color: #495057;
+}
+
+.phisguard-severity {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc3545;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.phisguard-warning-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phisguard-risk-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.risk-score {
+  font-weight: 700;
+  color: #495057;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.risk-indicators {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.phisguard-warning-message {
+  color: #495057;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.phisguard-key-threats {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #495057;
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+.phisguard-warning-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.phisguard-btn {
+  padding: 8px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phisguard-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.phisguard-btn:active {
+  transform: translateY(0);
+}
+
+.phisguard-btn-info {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.phisguard-btn-info:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.phisguard-btn-secondary {
+  background: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
+.phisguard-btn-secondary:hover {
+  background: #545b62;
+  border-color: #545b62;
+}
+
+.phisguard-btn-danger {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.phisguard-btn-danger:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.phisguard-warning-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(108, 117, 125, 0.1);
+  border: 1px solid #dee2e6;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6c757d;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.phisguard-warning-close:hover {
+  background: rgba(108, 117, 125, 0.2);
+  color: #495057;
+}
+
+/* Risk level specific styling */
+#phisguard-warning-banner.danger-risk {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  border-bottom-color: #dc3545;
+}
+
+#phisguard-warning-banner.danger-risk .phisguard-severity {
+  color: #dc3545;
+}
+
+#phisguard-warning-banner.caution-risk {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-bottom-color: #ffc107;
+}
+
+#phisguard-warning-banner.caution-risk .phisguard-severity {
+  color: #856404;
+}
+
+#phisguard-warning-banner.safe-risk {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  border-bottom-color: #17a2b8;
+}
+
+#phisguard-warning-banner.safe-risk .phisguard-severity {
+  color: #0c5460;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .phisguard-indicator {
+    font-size: 12px;
+    margin-right: 3px;
+  }
+
+  .phisguard-link {
+    padding: 1px 3px !important;
+  }
+
+  .phisguard-quick-action {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .phisguard-email-warning {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .phisguard-email-warning-content {
+    gap: 6px;
+  }
+
+  .phisguard-email-warning-icon {
+    font-size: 16px;
+  }
+
+  .phisguard-warning-content {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .phisguard-warning-header {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .phisguard-warning-body {
+    width: 100%;
+  }
+
+  .phisguard-risk-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .phisguard-warning-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .phisguard-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .phisguard-warning-close {
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+  }
+}

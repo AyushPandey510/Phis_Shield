@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "PhisGuard Security Extension",
+  "version": "1.0.0",
+  "description": "A Chrome extension for phishing detection and security analysis using PhisGuard backend.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "webNavigation",
+    "notifications",
+    "alarms",
+    "windows"
+  ],
+  "host_permissions": [
+    "http://localhost:5001/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PhisGuard Security"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["socket.io.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

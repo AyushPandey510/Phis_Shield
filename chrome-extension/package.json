@@ -1,0 +1,26 @@
+{
+  "name": "phisguard-chrome-extension",
+  "version": "1.0.0",
+  "description": "PhisGuard Chrome Extension for phishing protection",
+  "main": "popup.js",
+  "scripts": {
+    "dev": "npm run build:dev",
+    "build:dev": "npm run clean && npm run copy-files",
+    "build": "npm run clean && npm run copy-files && npm run zip",
+    "clean": "rm -rf dist",
+    "copy-files": "mkdir -p dist && cp manifest.json popup.html popup.js popup.css background.js content.js content.css dist/",
+    "zip": "cd dist && zip -r ../phisguard-extension.zip *",
+    "dev:extension": "http-server dist -p 3002 -c-1 --cors"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": [
+    "chrome-extension",
+    "security",
+    "phishing",
+    "phisguard"
+  ],
+  "author": "PhisGuard Team",
+  "license": "MIT"
+}

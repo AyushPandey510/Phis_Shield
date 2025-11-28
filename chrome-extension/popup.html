@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhisGuard Security</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PhisGuard</h1>
+            <p>Security Analysis Tool</p>
+        </header>
+
+        <div class="url-section">
+            <label for="url-input">URL to Analyze:</label>
+            <input type="url" id="url-input" placeholder="Enter URL or use current tab">
+            <button id="get-current-url">Get Current Tab</button>
+        </div>
+
+        <div class="buttons-section">
+            <button id="check-url-btn" class="check-btn">Check URL</button>
+            <button id="check-ssl-btn" class="check-btn">Check SSL</button>
+            <button id="expand-link-btn" class="check-btn">Expand Link</button>
+            <button id="check-breach-btn" class="check-btn">Check Breach</button>
+            <button id="dashboard-btn" class="check-btn dashboard-btn">🛡️ My Security Dashboard</button>
+        </div>
+
+        <div class="settings-section">
+            <h3>Warning Settings</h3>
+            <div class="setting-item">
+                <label for="warning-enabled">
+                    <input type="checkbox" id="warning-enabled" checked>
+                    Enable automatic page scanning
+                </label>
+            </div>
+            <div class="setting-item">
+                <label for="warning-sensitivity">Warning sensitivity:</label>
+                <select id="warning-sensitivity">
+                    <option value="low">Low (Show warnings for scores ≥20)</option>
+                    <option value="medium" selected>Medium (Show warnings for scores ≥40)</option>
+                    <option value="high">High (Show warnings for scores ≥70)</option>
+                </select>
+            </div>
+            <div class="setting-note">
+                <small>Warnings appear as non-intrusive banners at the top of suspicious pages.</small>
+            </div>
+        </div>
+
+        <div id="breach-inputs" class="hidden">
+            <label for="email-input">Email (optional):</label>
+            <input type="email" id="email-input" placeholder="Enter email">
+            <label for="password-input">Password (optional):</label>
+            <input type="password" id="password-input" placeholder="Enter password">
+            <button id="submit-breach-btn" class="submit-btn">Submit Breach Check</button>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Analyzing...</p>
+        </div>
+
+        <div id="results" class="hidden">
+            <h2>Analysis Results</h2>
+            <div id="results-content"></div>
+            <div id="feedback-section" class="hidden">
+                <h3>Help Improve Detection</h3>
+                <p>Was this classification correct?</p>
+                <div class="feedback-buttons">
+                    <button id="feedback-correct" class="feedback-btn correct">✅ Correct</button>
+                    <button id="feedback-incorrect" class="feedback-btn incorrect">❌ Incorrect</button>
+                </div>
+                <div id="feedback-details" class="hidden">
+                    <label for="feedback-url-type">What type of site is this?</label>
+                    <select id="feedback-url-type">
+                        <option value="">Select type...</option>
+                        <option value="phishing">Phishing/Malicious</option>
+                        <option value="legitimate">Legitimate/Safe</option>
+                        <option value="suspicious">Suspicious but not phishing</option>
+                        <option value="unknown">Not sure</option>
+                    </select>
+                    <button id="submit-feedback" class="submit-feedback-btn">Submit Feedback</button>
+                </div>
+                <div id="feedback-thanks" class="hidden">
+                    <p>Thank you for your feedback! This helps improve our detection accuracy.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="hidden">
+            <p class="error-message"></p>
+        </div>
+
+        <!-- Security Dashboard Section -->
+        <div id="dashboard" class="hidden">
+            <h2>🛡️ My Security Dashboard</h2>
+
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <h3>URLs Protected</h3>
+                    <div class="stat-number" id="protected-count">-</div>
+                    <p>Phishing attempts blocked</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Risk Levels Detected</h3>
+                    <div class="stat-number" id="risk-stats">
+                        <span id="high-risk">-</span> High |
+                        <span id="medium-risk">-</span> Medium |
+                        <span id="low-risk">-</span> Low
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Checks This Week</h3>
+                    <div class="stat-number" id="weekly-checks">-</div>
+                    <p>Security scans performed</p>
+                </div>
+            </div>
+
+            <div class="dashboard-actions">
+                <button id="refresh-dashboard" class="settings-btn">🔄 Refresh Data</button>
+                <button id="download-report" class="settings-btn">📥 Download Report</button>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Recent Phishing Detections</h3>
+                <div id="recent-detections">
+                    <div class="loading">Loading detection history...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Security Timeline</h3>
+                <div id="security-timeline">
+                    <div class="loading">Loading timeline...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Top Threat Categories</h3>
+                <canvas id="threatChart" width="300" height="200"></canvas>
+            </div>
+
+            <div class="dashboard-back">
+                <button id="back-to-main" class="settings-btn">← Back to Main</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

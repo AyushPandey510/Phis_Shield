@@ -1,0 +1,26 @@
+{
+  "name": "phisguard-chrome-extension",
+  "version": "1.0.0",
+  "description": "PhisGuard Chrome Extension for phishing protection",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:extension\"",
+    "dev:backend": "export PYTHONPATH=/home/ayush/.local/lib/python3.12/site-packages:/usr/lib/python3/dist-packages && python3 app.py",
+    "dev:extension": "cd chrome-extension && npm run dev:extension",
+    "build:dev": "cd chrome-extension && npm run build:dev",
+    "start": "./start-phisguard.sh",
+    "setup": "npm run build:dev && echo 'Extension built! Run: npm start'",
+    "test": "curl http://localhost:5000/health"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "http-server": "^14.1.1"
+  },
+  "keywords": [
+    "chrome-extension",
+    "security",
+    "phishing",
+    "phisguard"
+  ],
+  "author": "PhisGuard Team",
+  "license": "MIT"
+}

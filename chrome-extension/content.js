@@ -142,7 +142,7 @@ function addEmailWarning(riskData, emailElement) {
     icon = '🚨';
     warningClass = 'high-risk';
   } else if (riskLevel === 'caution') {
-    icon = '⚠️';
+    icon = '⚠';
     warningClass = 'medium-risk';
   } else {
     icon = '✅';
@@ -156,7 +156,7 @@ function addEmailWarning(riskData, emailElement) {
       <span class="phisguard-email-warning-text">
         Phishing Risk: ${riskScore}/100
       </span>
-      <button class="phisguard-email-details-btn" title="View details">ℹ️</button>
+      <button class="phisguard-email-details-btn" title="View details">ℹ</button>
     </div>
   `;
 
@@ -278,8 +278,11 @@ function showBlockingOverlay(riskData) {
         <button class="phisguard-btn phisguard-btn-secondary" onclick="window.history.back()">
           ← Go Back to Safety
         </button>
+        <button class="phisguard-btn phisguard-btn-info" onclick="(function(){ if(window.askWhyBlocking) window.askWhyBlocking(); })()" title="Why is this suspicious?">
+          ❓ Why is this suspicious?
+        </button>
         <button class="phisguard-btn phisguard-btn-danger" onclick="proceedAnyway()">
-          ⚠️ Proceed Anyway
+          ⚠ Proceed Anyway
         </button>
       </div>
 
@@ -496,13 +499,13 @@ function showWarningBanner(riskData) {
     textColor = '#721c24';
     severityText = 'HIGH RISK';
   } else if (riskLevel === 'caution') {
-    icon = '⚠️';
+    icon = '⚠';
     bgColor = '#fff3cd';
     borderColor = '#ffeaa7';
     textColor = '#856404';
     severityText = 'MEDIUM RISK';
   } else {
-    icon = 'ℹ️';
+    icon = 'ℹ';
     bgColor = '#d1ecf1';
     borderColor = '#bee5eb';
     textColor = '#0c5460';
@@ -537,9 +540,12 @@ function showWarningBanner(riskData) {
         </div>
       </div>
       <div class="phisguard-warning-actions">
-        <button class="phisguard-btn phisguard-btn-info" onclick="viewDetails()" title="View comprehensive security analysis">
-          🔍 Details
-        </button>
+            <button class="phisguard-btn phisguard-btn-info" onclick="viewDetails()" title="View comprehensive security analysis">
+              🔍 Details
+            </button>
+            <button class="phisguard-btn phisguard-btn-info" onclick="(function(){ if(window.askWhyBanner) window.askWhyBanner(); })()" title="Why is this suspicious?">
+              ❓ Why is this suspicious?
+            </button>
         <button class="phisguard-btn phisguard-btn-secondary" onclick="dismissWarning()" title="Hide this warning">
           Dismiss
         </button>
@@ -750,9 +756,9 @@ function getWarningMessage(riskLevel) {
     case 'danger':
       return '🚨 CRITICAL: This website poses significant security risks. Do not enter personal information or click suspicious links.';
     case 'caution':
-      return '⚠️ CAUTION: This website has security concerns. Verify the site\'s legitimacy before proceeding.';
+      return '⚠ CAUTION: This website has security concerns. Verify the site\'s legitimacy before proceeding.';
     default:
-      return 'ℹ️ NOTICE: This website has minor security considerations. Continue with normal caution.';
+      return 'ℹ NOTICE: This website has minor security considerations. Continue with normal caution.';
   }
 }
 
@@ -804,7 +810,7 @@ function addIndicator(link, riskData) {
 
   if (riskData.risk_level === 'high') {
     riskClass = 'high-risk';
-    icon = '⚠️';
+    icon = '⚠';
     tooltipText = `High Risk: ${riskData.details || 'This link appears suspicious'}`;
   } else if (riskData.risk_level === 'medium') {
     riskClass = 'medium-risk';
@@ -1042,7 +1048,7 @@ function showSecurityDetailsModal(url, data) {
     icon = '🚨';
   } else if (recommendation === 'caution') {
     headerClass = 'caution-header';
-    icon = '⚠️';
+    icon = '⚠';
   }
 
   const modal = document.createElement('div');
@@ -1093,8 +1099,9 @@ function showSecurityDetailsModal(url, data) {
         </div>
 
         <div class="phisguard-modal-footer">
-          <button class="phisguard-btn phisguard-btn-secondary" onclick="closeSecurityModal()">Close</button>
-          <button class="phisguard-btn phisguard-btn-primary" onclick="openPhisGuardPopup('${url}')">Open PhisGuard</button>
+              <button class="phisguard-btn phisguard-btn-secondary" onclick="closeSecurityModal()">Close</button>
+              <button class="phisguard-btn phisguard-btn-info" onclick="(function(){ if(window.askWhyModal) window.askWhyModal(); })()">❓ Why is this suspicious?</button>
+              <button class="phisguard-btn phisguard-btn-primary" onclick="openPhisGuardPopup('${url}')">Open PhisGuard</button>
         </div>
       </div>
     </div>
@@ -1422,6 +1429,121 @@ function showSecurityDetailsModal(url, data) {
 
   document.head.appendChild(style);
   document.body.appendChild(modal);
+
+  // Chat / explanation panel helper
+  async function openExplanationPanel(title, explanationText) {
+    // Remove existing panel
+    const existing = document.getElementById('phisguard-explain-panel');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'phisguard-explain-panel';
+    panel.innerHTML = `
+      <div class="phisguard-explain-overlay">
+        <div class="phisguard-explain-box">
+          <div class="phisguard-explain-header">
+            <strong>${title}</strong>
+            <button id="phisguard-explain-close">×</button>
+          </div>
+          <div class="phisguard-explain-body">
+            <pre id="phisguard-explain-text" style="white-space:pre-wrap;">${explanationText}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const pStyle = document.createElement('style');
+    pStyle.textContent = `
+      #phisguard-explain-panel { position: fixed; z-index: 10002; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; }
+      .phisguard-explain-overlay { position:absolute; inset:0; background: rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; }
+      .phisguard-explain-box { background:#fff; border-radius:8px; width:90%; max-width:720px; max-height:80%; overflow:auto; box-shadow:0 20px 40px rgba(0,0,0,0.3); }
+      .phisguard-explain-header { display:flex; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #eee; font-size:16px; }
+      .phisguard-explain-body { padding:16px; font-family:inherit; color:#333; }
+      #phisguard-explain-close { background:none; border:none; font-size:20px; cursor:pointer; }
+    `;
+
+    document.head.appendChild(pStyle);
+    document.body.appendChild(panel);
+
+    document.getElementById('phisguard-explain-close').addEventListener('click', () => {
+      panel.remove();
+      pStyle.remove();
+    });
+  }
+
+  // Explanation generator using existing analysis data
+  window.generateExplanation = function(riskData) {
+    const parts = [];
+
+    try {
+      // Highest-level summary
+      const score = Math.round((riskData.assessment?.overall_score || riskData.risk_score || 0));
+      const level = (riskData.assessment?.risk_level || riskData.risk_level || 'unknown').toUpperCase();
+      parts.push(`Overall risk: ${score}/100 (${level})`);
+
+      // URL-based reasons
+      const urlCheck = riskData.individual_checks?.url_check || riskData.url_check || {};
+      if (urlCheck.details && urlCheck.details.length) {
+        parts.push('URL analysis: ' + urlCheck.details.slice(0,3).join('; '));
+      }
+
+      // SSL reasons
+      const ssl = riskData.individual_checks?.ssl_check || riskData.ssl_check || {};
+      if (ssl.details && ssl.details.length) {
+        parts.push('SSL issues: ' + ssl.details.slice(0,3).join('; '));
+      } else if (ssl.is_expired || ssl.is_self_signed) {
+        const issues = [];
+        if (ssl.is_expired) issues.push('certificate expired');
+        if (ssl.is_self_signed) issues.push('self-signed certificate');
+        parts.push('SSL issues: ' + issues.join(', '));
+      }
+
+      // Link expansion / redirect chain
+      const link = riskData.individual_checks?.link_expansion || riskData.link_expansion || riskData.link || {};
+      if (link.analysis && link.analysis.risk_flags && link.analysis.risk_flags.length) {
+        parts.push('Redirect/link analysis: ' + link.analysis.risk_flags.slice(0,3).join('; '));
+      }
+
+      // Breach checks
+      const breach = riskData.individual_checks?.breach_check || riskData.breach_check || {};
+      if (breach && (breach.breached || breach.breach_count)) {
+        parts.push('Breach data: ' + (breach.breached ? `compromised (${breach.breach_count || 'unknown'} breaches)` : 'no breach found'));
+      }
+
+      // ML / heuristic flags
+      const ml = [];
+      if (riskData.details && Array.isArray(riskData.details)) {
+        const flags = riskData.details.filter(d => /suspicious|phishing|malicious|VIRUSTOTAL|ML Model|similar/.test(d));
+        if (flags.length) ml.push(...flags.slice(0,3));
+      }
+      if (ml.length) parts.push('Heuristic signals: ' + ml.join('; '));
+
+      // Fallback
+      if (parts.length === 1 && riskData.details && riskData.details.length) {
+        parts.push('Details: ' + riskData.details.slice(0,4).join('; '));
+      }
+
+      return parts.join('\n\n');
+    } catch (e) {
+      return 'Unable to generate explanation for this site.';
+    }
+  };
+
+  // Handlers exposed for the UI buttons
+  window.askWhyModal = async function() {
+    const explanation = window.generateExplanation(data);
+    openExplanationPanel('Why is this site suspicious?', explanation);
+  };
+
+  window.askWhyBanner = async function() {
+    const explanation = window.generateExplanation({ ...data, risk_score: data.risk_score || data.assessment?.overall_score });
+    openExplanationPanel('Why is this site suspicious?', explanation);
+  };
+
+  window.askWhyBlocking = async function() {
+    const explanation = window.generateExplanation({ ...data, risk_score: data.risk_score || data.assessment?.overall_score });
+    openExplanationPanel('Why was this page blocked?', explanation);
+  };
 }
 
 // Function to render analysis section
@@ -1467,7 +1589,7 @@ function getSecurityRecommendations(recommendation) {
       `;
     case 'caution':
       return `
-        <strong>⚠️ MEDIUM RISK - Proceed with caution:</strong><br>
+        <strong>⚠ MEDIUM RISK - Proceed with caution:</strong><br>
         • Verify the website URL carefully<br>
         • Be cautious with any forms or downloads<br>
         • Check for HTTPS security indicators<br>
@@ -1494,7 +1616,7 @@ function showErrorModal(message) {
       <div class="phisguard-modal-content" style="max-width: 400px;">
         <div class="phisguard-modal-header danger-header">
           <div class="phisguard-modal-title">
-            <span class="phisguard-modal-icon">⚠️</span>
+            <span class="phisguard-modal-icon">⚠</span>
             <h2>Error</h2>
           </div>
           <button class="phisguard-modal-close" onclick="this.closest('#phisguard-error-modal').remove()">×</button>

@@ -205,8 +205,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Open the extension popup with optional URL parameter
       try {
         const url = request.data?.url || '';
-        const popupUrl = chrome.runtime.getURL('popup.html');
-        const fullUrl = url ? `${popupUrl}?url=${encodeURIComponent(url)}&autoCheck=true` : popupUrl;
+        const popupPageUrl = chrome.runtime.getURL('popup.html');
+        const fullUrl = url ? `${popupPageUrl}?url=${encodeURIComponent(url)}&autoCheck=true` : popupPageUrl;
 
         chrome.windows.create({
           url: fullUrl,
@@ -234,7 +234,7 @@ function isOnline() {
 
 // Utility function to generate cache key
 function generateCacheKey(endpoint, data) {
-  return `${endpoint}_${btoa(JSON.stringify(data)).replace(/[^a-zA-Z0-9]/g, '')}`;
+  return endpoint + '_' + btoa(JSON.stringify(data)).replace(/[^a-zA-Z0-9]/g, '');
 }
 
 // Cache management functions with configurable expiry
@@ -336,7 +336,7 @@ async function getCacheStats(sendResponse) {
 
 // API request with retry logic
 async function makeApiRequest(endpoint, data, retries = MAX_RETRIES) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = API_BASE_URL + endpoint;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -842,12 +842,12 @@ async function showSecurityNotification(url, riskData, tabId) {
       iconUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDZhNiA2IDAgMSAxIDAgMTJ2OGEyIDIgMCAwIDEtNCAwdjhhNiA2IDAgMSAxLTEyIDB2LThhMiAyIDAgMCAxIDQtMFoiIGZpbGw9IiNkYzM1NDUiLz4KPHBhdGggZD0iTTMwIDI2YTIgMiAwIDAgMS00IDB2LTJhMiAyIDAgMCAxIDQtMFYyNnoiIGZpbGw9IiNkYzM1NDUiLz4KPC9zdmc+';
       priority = 2; // High priority
     } else if (riskLevel === 'medium' || riskScore >= 40) {
-      title = '⚠️ Security Concerns Detected';
+      title = '⚠ Security Concerns Detected';
       message = 'This website has potential security issues. Please review carefully.';
       iconUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDZhNiA2IDAgMSAxIDAgMTJ2OGEyIDIgMCAwIDEtNCAwdjhhNiA2IDAgMSAxLTEyIDB2LThhMiAyIDAgMCAxIDQtMFoiIGZpbGw9IiNmMzkzMTIiLz4KPHBhdGggZD0iTTMwIDI2YTIgMiAwIDAgMS00IDB2LTJhMiAyIDAgMCAxIDQtMFYyNnoiIGZpbGw9IiNmMzkzMTIiLz4KPC9zdmc+';
       priority = 1; // Medium priority
     } else if (riskLevel === 'low' || riskScore >= 20) {
-      title = 'ℹ️ Security Notice';
+      title = 'ℹ Security Notice';
       message = 'This website has minor security considerations.';
       iconUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDZhNiA2IDAgMSAxIDAgMTJ2OGEyIDIgMCAwIDEtNCAwdjhhNiA2IDAgMSAxLTEyIDB2LThhMiAyIDAgMCAxIDQtMFoiIGZpbGw9IiMwMDdiZmYiLz4KPHBhdGggZD0iTTMwIDI2YTIgMiAwIDAgMS00IDB2LTJhMiAyIDAgMCAxIDQtMFYyNnoiIGZpbGw9IiMwMDdiZmYiLz4KPC9zdmc+';
       priority = 0; // Default priority
@@ -856,7 +856,12 @@ async function showSecurityNotification(url, riskData, tabId) {
     }
 
     // Create detailed message with risk breakdown
-    const detailedMessage = `${message}\n\nRisk Score: ${riskScore}/100\nThreat Level: ${riskLevel.toUpperCase()}\n\nClick for more details.`;
+    const detailedMessage = `${message}
+    
+Risk Score: ${riskScore}/100
+Threat Level: ${riskLevel.toUpperCase()}
+
+Click for more details.`;
 
     // Create notification with enhanced options
     const notificationOptions = {
@@ -867,7 +872,7 @@ async function showSecurityNotification(url, riskData, tabId) {
       contextMessage: `Analyzed: ${new URL(url).hostname}`,
       buttons: [
         { title: '🔍 View Full Details' },
-        { title: '🛡️ Open PhisGuard' },
+        { title: '🛡 Open PhisGuard' },
         { title: '❌ Dismiss' }
       ],
       requireInteraction: riskLevel === 'high' || riskScore >= 70,

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PhisGuard Security</title>
     <link rel="stylesheet" href="popup.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="jspdf.umd.min.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -149,5 +152,14 @@
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="popup.js"></script>
+        <script>
+        // Verify jsPDF is loaded
+        if (window.jspdf) {
+            console.log('✅ jsPDF loaded successfully');
+        } else {
+            console.error('❌ jsPDF failed to load. Check the file path.');
+        }
+    </script>
+
 </body>
 </html>

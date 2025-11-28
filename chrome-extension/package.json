@@ -22,5 +22,8 @@
     "phisguard"
   ],
   "author": "PhisGuard Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "jspdf": "^3.0.4"
+  }
 }

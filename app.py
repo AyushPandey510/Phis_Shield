@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -9,6 +9,15 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
 from services.url_checker import check_url
 from services.ssl_checker import check_ssl
 from services.link_expander import expand_link
@@ -548,7 +557,7 @@ def extension_health_check():
     })
 
 @app.route('/check-url', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("50 per minute")
 @require_api_key
 def check_url_endpoint():
     data = request.get_json()
@@ -602,7 +611,7 @@ def check_url_endpoint():
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/check-ssl', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("50 per minute")
 @require_api_key
 def check_ssl_endpoint():
     data = request.get_json()
@@ -633,7 +642,7 @@ def check_ssl_endpoint():
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/expand-link', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("50 per minute")
 @require_api_key
 def expand_link_endpoint():
     data = request.get_json()
@@ -686,7 +695,7 @@ def expand_link_endpoint():
         }), 500
 
 @app.route('/check-breach', methods=['POST'])
-@limiter.limit("5 per minute")  # Stricter limit for breach checks
+@limiter.limit("20 per minute")  # Stricter limit for breach checks
 @require_api_key
 def check_breach_endpoint():
     data = request.get_json()
@@ -741,7 +750,7 @@ def check_breach_endpoint():
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/check-email-text', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("50 per minute")
 @require_api_key
 def check_email_text_endpoint():
     data = request.get_json()
@@ -843,6 +852,133 @@ def user_security_dashboard():
         logger.error(f"Error in user_security_dashboard: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
+def generate_security_report_pdf(report_data, user_id):
+    """Generate a PDF security report"""
+    if not PDF_AVAILABLE:
+        raise Exception("PDF generation not available - reportlab not installed")
+
+    from io import BytesIO
+    buffer = BytesIO()
+
+    # Create the PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+    )
+    story.append(Paragraph("PhisGuard Security Report", title_style))
+    story.append(Spacer(1, 12))
+
+    # Report generation info
+    story.append(Paragraph(f"Generated for User: {user_id}", styles['Normal']))
+    story.append(Paragraph(f"Report Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Spacer(1, 20))
+
+    # Security Summary
+    story.append(Paragraph("Security Summary", styles['Heading2']))
+    summary_data = [
+        ["Metric", "Value"],
+        ["URLs Protected", str(report_data.get('protected_count', 0))],
+        ["High Risk Detections", str(report_data.get('high_risk_count', 0))],
+        ["Medium Risk Detections", str(report_data.get('medium_risk_count', 0))],
+        ["Low Risk Detections", str(report_data.get('low_risk_count', 0))],
+        ["Weekly Checks", str(report_data.get('weekly_checks', 0))],
+    ]
+
+    summary_table = Table(summary_data)
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 20))
+
+    # Recent Detections
+    if report_data.get('recent_detections'):
+        story.append(Paragraph("Recent High-Risk Detections", styles['Heading2']))
+        detection_data = [["URL", "Risk Level", "Date"]]
+        for detection in report_data['recent_detections'][:10]:  # Limit to 10
+            detection_data.append([
+                detection.get('url', 'Unknown')[:50] + '...' if len(detection.get('url', '')) > 50 else detection.get('url', 'Unknown'),
+                detection.get('risk_level', 'Unknown'),
+                datetime.fromisoformat(detection.get('timestamp', '').replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M') if detection.get('timestamp') else 'Unknown'
+            ])
+
+        detection_table = Table(detection_data)
+        detection_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(detection_table)
+        story.append(Spacer(1, 20))
+
+    # Security Timeline
+    if report_data.get('security_timeline'):
+        story.append(Paragraph("Security Timeline", styles['Heading2']))
+        timeline_data = [["Time", "Event"]]
+        for event in report_data['security_timeline'][:15]:  # Limit to 15
+            timeline_data.append([
+                datetime.fromisoformat(event.get('timestamp', '').replace('Z', '+00:00')).strftime('%m-%d %H:%M') if event.get('timestamp') else 'Unknown',
+                event.get('event', 'Unknown')
+            ])
+
+        timeline_table = Table(timeline_data)
+        timeline_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(timeline_table)
+        story.append(Spacer(1, 20))
+
+    # Threat Categories
+    if report_data.get('threat_categories'):
+        story.append(Paragraph("Threat Categories", styles['Heading2']))
+        threat_data = [["Category", "Count"]]
+        for category, count in report_data['threat_categories'].items():
+            threat_data.append([category, str(count)])
+
+        threat_table = Table(threat_data)
+        threat_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(threat_table)
+
+    # Build the PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 @app.route('/user/security-report', methods=['GET'])
 def user_security_report():
     """Get user's security report data for download"""
@@ -853,13 +989,33 @@ def user_security_report():
         # Get comprehensive security data
         report_data = get_user_security_data(user_id, include_detailed=True)
 
-        return jsonify(report_data)
+        # Check if PDF format is requested
+        format_type = request.args.get('format', 'json').lower()
+
+        if format_type == 'pdf':
+            if not PDF_AVAILABLE:
+                return jsonify({"error": "PDF generation not available - reportlab not installed"}), 500
+
+            try:
+                pdf_buffer = generate_security_report_pdf(report_data, user_id)
+                return send_file(
+                    pdf_buffer,
+                    as_attachment=True,
+                    download_name=f'phisguard_security_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
+                    mimetype='application/pdf'
+                )
+            except Exception as pdf_error:
+                logger.error(f"Error generating PDF: {str(pdf_error)}")
+                return jsonify({"error": "Failed to generate PDF report"}), 500
+        else:
+            # Return JSON format
+            return jsonify(report_data)
     except Exception as e:
         logger.error(f"Error in user_security_report: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/comprehensive-check', methods=['POST'])
-@limiter.limit("5 per minute")  # Stricter limit for comprehensive checks
+@limiter.limit("20 per minute")  # Stricter limit for comprehensive checks
 @require_api_key
 def comprehensive_check_endpoint():
     data = request.get_json()

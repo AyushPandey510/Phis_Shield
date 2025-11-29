@@ -404,7 +404,7 @@ def check_url(url: str) -> Tuple[int, List[str]]:
         details.append("⚠️ MEDIUM RISK: Some security engines flagged as suspicious")
 
     # Ensure minimum risk for obviously suspicious sites
-    final_risk = min(risk, 100)
+    final_risk = min(max(0, risk), 100)
 
     # Add risk level interpretation
     if final_risk >= 70:

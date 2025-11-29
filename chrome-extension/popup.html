@@ -24,10 +24,9 @@
             <button id="check-ssl-btn" class="check-btn">Check SSL</button>
             <button id="expand-link-btn" class="check-btn">Expand Link</button>
             <button id="check-breach-btn" class="check-btn">Check Breach</button>
-            <button id="dashboard-btn" class="check-btn dashboard-btn">🛡️ My Security Dashboard</button>
         </div>
 
-        <div class="settings-section">
+        <!-- <div class="settings-section">
             <h3>Warning Settings</h3>
             <div class="setting-item">
                 <label for="warning-enabled">
@@ -46,7 +45,7 @@
             <div class="setting-note">
                 <small>Warnings appear as non-intrusive banners at the top of suspicious pages.</small>
             </div>
-        </div>
+        </div> -->
 
         <div id="breach-inputs" class="hidden">
             <label for="email-input">Email (optional):</label>
@@ -92,62 +91,8 @@
             <p class="error-message"></p>
         </div>
 
-        <!-- Security Dashboard Section -->
-        <div id="dashboard" class="hidden">
-            <h2>🛡️ My Security Dashboard</h2>
-
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <h3>URLs Protected</h3>
-                    <div class="stat-number" id="protected-count">-</div>
-                    <p>Phishing attempts blocked</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Risk Levels Detected</h3>
-                    <div class="stat-number" id="risk-stats">
-                        <span id="high-risk">-</span> High |
-                        <span id="medium-risk">-</span> Medium |
-                        <span id="low-risk">-</span> Low
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <h3>Checks This Week</h3>
-                    <div class="stat-number" id="weekly-checks">-</div>
-                    <p>Security scans performed</p>
-                </div>
-            </div>
-
-            <div class="dashboard-actions">
-                <button id="refresh-dashboard" class="settings-btn">🔄 Refresh Data</button>
-                <button id="download-report" class="settings-btn">📥 Download Report</button>
-            </div>
-
-            <div class="dashboard-section">
-                <h3>Recent Phishing Detections</h3>
-                <div id="recent-detections">
-                    <div class="loading">Loading detection history...</div>
-                </div>
-            </div>
-
-            <div class="dashboard-section">
-                <h3>Security Timeline</h3>
-                <div id="security-timeline">
-                    <div class="loading">Loading timeline...</div>
-                </div>
-            </div>
-
-            <div class="dashboard-section">
-                <h3>Top Threat Categories</h3>
-                <canvas id="threatChart" width="300" height="200"></canvas>
-            </div>
-
-            <div class="dashboard-back">
-                <button id="back-to-main" class="settings-btn">← Back to Main</button>
-            </div>
-        </div>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

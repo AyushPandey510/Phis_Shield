@@ -8,12 +8,15 @@
     "build:dev": "npm run clean && npm run copy-files",
     "build": "npm run clean && npm run copy-files && npm run zip",
     "clean": "rm -rf dist",
-    "copy-files": "mkdir -p dist && cp manifest.json popup.html popup.js popup.css background.js content.js content.css dist/",
+    "copy-files": "mkdir -p dist && cp manifest.json popup.html popup.js popup.css background.js content.js content.css dist/ && cp -r node_modules/jspdf/dist/* dist/",
     "zip": "cd dist && zip -r ../phisguard-extension.zip *",
     "dev:extension": "http-server dist -p 3002 -c-1 --cors"
   },
   "devDependencies": {
     "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.1"
   },
   "keywords": [
     "chrome-extension",

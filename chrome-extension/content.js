@@ -28,37 +28,58 @@ async function getWarningSettings() {
 
 // Function to check current page URL for warnings
 async function checkCurrentPage() {
-  const currentUrl = window.location.href;
+   console.log('PhisGuard: checkCurrentPage called for URL:', window.location.href);
+   const currentUrl = window.location.href;
+
+  console.log('PhisGuard: checkCurrentPage called for URL:', currentUrl);
 
   // Skip internal pages and safe protocols
   if (currentUrl.startsWith('chrome://') ||
       currentUrl.startsWith('chrome-extension://') ||
       currentUrl.startsWith('about:') ||
       currentUrl.startsWith('file://')) {
+    console.log('PhisGuard: Skipping internal URL');
     return;
   }
 
   try {
     // Get user preferences
     const settings = await getWarningSettings();
+    console.log('PhisGuard: Warning settings:', settings);
 
     // Skip if automatic scanning is disabled
     if (!settings.enabled) {
+      console.log('PhisGuard: Automatic scanning disabled');
       return;
     }
 
+    console.log('PhisGuard: Checking link via background script');
     const response = await checkLink(currentUrl);
+    console.log('PhisGuard: Response from background:', response);
+
     if (response && response.success && response.data) {
       const riskData = response.data;
+      console.log('PhisGuard: Risk data received:', riskData);
 
+      // Check if page should show warning popup for high risk score
+      if (riskData.risk_score > 70) {
+        console.log('PhisGuard: High risk score detected, showing popup:', riskData.risk_score);
+        showWarningPopup(riskData);
+      }
       // Check if page should show warning based on sensitivity
-      if (shouldShowWarning(riskData, settings.sensitivity)) {
+      else if (shouldShowWarning(riskData, settings.sensitivity)) {
+        console.log('PhisGuard: Showing warning banner');
         showWarningBanner(riskData);
       }
       // Check if page should be blocked (very high risk + multiple confirmations)
       else if (shouldBlockPage(riskData)) {
+        console.log('PhisGuard: Showing blocking overlay');
         showBlockingOverlay(riskData);
+      } else {
+        console.log('PhisGuard: No warning needed, risk score:', riskData.risk_score);
       }
+    } else {
+      console.log('PhisGuard: No valid response from background');
     }
   } catch (error) {
     console.error('PhisGuard: Error checking current page', error);
@@ -132,7 +153,9 @@ function addEmailWarning(riskData, emailElement) {
   const warning = document.createElement('div');
   warning.className = 'phisguard-email-warning';
 
-  const riskScore = Math.round(riskData.risk_score * 100);
+  // Clamp risk score to maximum of 100
+  const rawRiskScore = riskData.risk_score || 0;
+  const riskScore = Math.min(100, Math.round(rawRiskScore > 1 ? rawRiskScore : rawRiskScore * 100));
   const riskLevel = riskData.recommendation;
 
   let icon = '';
@@ -173,7 +196,9 @@ function addEmailWarning(riskData, emailElement) {
 
 // Function to show detailed email warning
 function showEmailWarningDetails(riskData) {
-  const riskScore = Math.round(riskData.risk_score * 100);
+  // Clamp risk score to maximum of 100
+  const rawRiskScore = riskData.risk_score || 0;
+  const riskScore = Math.min(100, Math.round(rawRiskScore > 1 ? rawRiskScore : rawRiskScore * 100));
 
   const details = `
 Phishing Analysis Results:
@@ -255,7 +280,7 @@ function showBlockingOverlay(riskData) {
       <div class="phisguard-block-stats">
         <div class="phisguard-stat-item">
           <span class="stat-label">Risk Score:</span>
-          <span class="stat-value high-risk">${riskData.risk_score || 'N/A'}/100</span>
+          <span class="stat-value high-risk">${Math.min(100, Math.round((riskData.risk_score || 0) > 1 ? (riskData.risk_score || 0) : (riskData.risk_score || 0) * 100))}/100</span>
         </div>
         <div class="phisguard-stat-item">
           <span class="stat-label">Risk Level:</span>
@@ -275,10 +300,10 @@ function showBlockingOverlay(riskData) {
       </div>
 
       <div class="phisguard-block-actions">
-        <button class="phisguard-btn phisguard-btn-secondary" onclick="window.history.back()">
+        <button class="phisguard-btn phisguard-btn-secondary" id="go-back-btn">
           ← Go Back to Safety
         </button>
-        <button class="phisguard-btn phisguard-btn-danger" onclick="proceedAnyway()">
+        <button class="phisguard-btn phisguard-btn-danger" id="proceed-anyway-btn">
           ⚠️ Proceed Anyway
         </button>
       </div>
@@ -463,15 +488,325 @@ function showBlockingOverlay(riskData) {
     }
   `;
 
-  // Add proceed function to window
-  window.proceedAnyway = function() {
-    overlay.remove();
-    style.remove();
-    document.body.style.overflow = '';
-  };
 
   document.head.appendChild(style);
   document.body.appendChild(overlay);
+
+  // Add event listeners programmatically
+  const goBackBtn = overlay.querySelector('#go-back-btn');
+  const proceedBtn = overlay.querySelector('#proceed-anyway-btn');
+
+  if (goBackBtn) {
+    goBackBtn.addEventListener('click', function() {
+      try {
+        window.history.back();
+      } catch (error) {
+        console.error('Error going back:', error);
+        // Fallback: navigate to chrome://newtab
+        window.location.href = 'chrome://newtab';
+      }
+    });
+  }
+
+  if (proceedBtn) {
+    proceedBtn.addEventListener('click', function() {
+      try {
+        overlay.remove();
+        style.remove();
+        document.body.style.overflow = '';
+      } catch (error) {
+        console.error('Error proceeding anyway:', error);
+      }
+    });
+  }
+}
+
+// Function to show warning popup for high-risk sites
+function showWarningPopup(riskData) {
+ // Remove existing popup if present
+ const existingPopup = document.getElementById('phisguard-warning-popup');
+ if (existingPopup) existingPopup.remove();
+
+ // Clamp risk score to maximum of 100 and ensure it's properly formatted
+ const rawRiskScore = riskData.risk_score || 0;
+ const riskScore = Math.min(100, Math.round(rawRiskScore > 1 ? rawRiskScore : rawRiskScore * 100));
+ const riskLevel = riskData.recommendation || 'caution';
+
+ const popup = document.createElement('div');
+ popup.id = 'phisguard-warning-popup';
+ popup.innerHTML = `
+   <div class="phisguard-popup-overlay">
+     <div class="phisguard-popup-content">
+       <div class="phisguard-popup-header">
+         <div class="phisguard-popup-icon">🚨</div>
+         <h1>Security Warning</h1>
+         <p>This website has been detected as potentially dangerous</p>
+       </div>
+
+       <div class="phisguard-popup-stats">
+         <div class="phisguard-stat-item">
+           <span class="stat-label">Risk Score:</span>
+           <span class="stat-value high-risk">${riskScore}/100</span>
+         </div>
+         <div class="phisguard-stat-item">
+           <span class="stat-label">Risk Level:</span>
+           <span class="stat-value high-risk">${riskLevel.toUpperCase()}</span>
+         </div>
+       </div>
+
+       <div class="phisguard-popup-details">
+         <h3>Why is this site considered dangerous?</h3>
+         <ul>
+           ${(riskData.details || []).map(detail => `<li>${detail}</li>`).join('')}
+         </ul>
+       </div>
+
+       <div class="phisguard-popup-actions">
+         <button class="phisguard-btn phisguard-btn-secondary" id="dismiss-warning-btn">
+           I Understand - Continue
+         </button>
+         <button class="phisguard-btn phisguard-btn-danger" id="leave-site-btn">
+           🚪 Leave This Site
+         </button>
+       </div>
+
+       <div class="phisguard-popup-footer">
+         <p>Protected by <strong>PhisGuard</strong> - Advanced Phishing Detection</p>
+       </div>
+     </div>
+   </div>
+ `;
+
+ // Add popup styles
+ const style = document.createElement('style');
+ style.textContent = `
+   #phisguard-warning-popup {
+     position: fixed;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     z-index: 999998;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   }
+
+   .phisguard-popup-overlay {
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     background: rgba(0, 0, 0, 0.7);
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     padding: 20px;
+     box-sizing: border-box;
+   }
+
+   .phisguard-popup-content {
+     background: white;
+     border-radius: 12px;
+     padding: 30px;
+     max-width: 500px;
+     width: 100%;
+     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+     text-align: center;
+     animation: phisguard-popup-fade-in 0.3s ease-out;
+     position: relative;
+   }
+
+   @keyframes phisguard-popup-fade-in {
+     from { opacity: 0; transform: scale(0.9); }
+     to { opacity: 1; transform: scale(1); }
+   }
+
+   .phisguard-popup-header {
+     margin-bottom: 25px;
+   }
+
+   .phisguard-popup-icon {
+     font-size: 48px;
+     margin-bottom: 10px;
+     color: #dc3545;
+   }
+
+   .phisguard-popup-header h1 {
+     color: #dc3545;
+     margin: 10px 0;
+     font-size: 24px;
+     font-weight: bold;
+   }
+
+   .phisguard-popup-header p {
+     color: #666;
+     margin: 0;
+     font-size: 16px;
+   }
+
+   .phisguard-popup-stats {
+     display: grid;
+     grid-template-columns: 1fr;
+     gap: 15px;
+     margin: 25px 0;
+     padding: 20px;
+     background: #f8f9fa;
+     border-radius: 8px;
+   }
+
+   .phisguard-stat-item {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+   }
+
+   .stat-label {
+     font-weight: 600;
+     color: #333;
+   }
+
+   .stat-value {
+     font-weight: bold;
+     font-size: 18px;
+   }
+
+   .stat-value.high-risk {
+     color: #dc3545;
+   }
+
+   .phisguard-popup-details {
+     text-align: left;
+     margin: 25px 0;
+     max-height: 200px;
+     overflow-y: auto;
+   }
+
+   .phisguard-popup-details h3 {
+     margin-top: 0;
+     color: #333;
+     font-size: 18px;
+   }
+
+   .phisguard-popup-details ul {
+     margin: 10px 0 0 0;
+     padding-left: 20px;
+   }
+
+   .phisguard-popup-details li {
+     margin: 5px 0;
+     color: #555;
+     line-height: 1.4;
+   }
+
+   .phisguard-popup-actions {
+     display: flex;
+     gap: 15px;
+     justify-content: center;
+     margin: 30px 0 20px 0;
+   }
+
+   .phisguard-btn {
+     padding: 12px 24px;
+     border: none;
+     border-radius: 6px;
+     font-size: 16px;
+     font-weight: 600;
+     cursor: pointer;
+     transition: all 0.2s ease;
+   }
+
+   .phisguard-btn-secondary {
+     background: #6c757d;
+     color: white;
+   }
+
+   .phisguard-btn-secondary:hover {
+     background: #5a6268;
+     transform: translateY(-1px);
+   }
+
+   .phisguard-btn-danger {
+     background: #dc3545;
+     color: white;
+   }
+
+   .phisguard-btn-danger:hover {
+     background: #c82333;
+     transform: translateY(-1px);
+   }
+
+   .phisguard-popup-footer {
+     margin-top: 20px;
+     padding-top: 20px;
+     border-top: 1px solid #eee;
+     color: #666;
+     font-size: 14px;
+   }
+
+   .phisguard-popup-footer strong {
+     color: #007bff;
+   }
+
+   @media (max-width: 600px) {
+     .phisguard-popup-content {
+       padding: 20px;
+       margin: 20px;
+     }
+
+     .phisguard-popup-actions {
+       flex-direction: column;
+     }
+
+     .phisguard-btn {
+       width: 100%;
+     }
+   }
+ `;
+
+
+ document.head.appendChild(style);
+ document.body.appendChild(popup);
+
+ // Add event listeners programmatically
+ const dismissBtn = popup.querySelector('#dismiss-warning-btn');
+ const leaveBtn = popup.querySelector('#leave-site-btn');
+
+ if (dismissBtn) {
+   dismissBtn.addEventListener('click', function() {
+     try {
+       if (popup && popup.parentNode) {
+         popup.remove();
+       }
+       if (style && style.parentNode) {
+         style.remove();
+       }
+     } catch (error) {
+       console.error('Error dismissing warning popup:', error);
+     }
+   });
+ }
+
+ if (leaveBtn) {
+   leaveBtn.addEventListener('click', function() {
+     try {
+       if (confirm('Are you sure you want to leave this site? This will take you to a safe page.')) {
+         // Navigate to chrome.com (safe and reliable)
+         window.location.href = 'https://chrome.com';
+       }
+     } catch (error) {
+       console.error('Error leaving site from popup:', error);
+       // Emergency fallback
+       try {
+         window.location.href = 'about:blank';
+       } catch (fallbackError) {
+         console.error('Even fallback failed:', fallbackError);
+       }
+     }
+   });
+ }
 }
 
 // Function to show warning banner at top of page
@@ -480,7 +815,9 @@ function showWarningBanner(riskData) {
   const existingWarning = document.getElementById('phisguard-warning-banner');
   if (existingWarning) existingWarning.remove();
 
-  const riskScore = Math.round(riskData.risk_score * 100) / 100;
+  // Clamp risk score to maximum of 100
+  const rawRiskScore = riskData.risk_score || 0;
+  const riskScore = Math.min(100, Math.round(rawRiskScore > 1 ? rawRiskScore : rawRiskScore * 100));
   const riskLevel = riskData.recommendation || 'caution';
 
   let icon = '';
@@ -537,13 +874,13 @@ function showWarningBanner(riskData) {
         </div>
       </div>
       <div class="phisguard-warning-actions">
-        <button class="phisguard-btn phisguard-btn-info" onclick="viewDetails()" title="View comprehensive security analysis">
+        <button class="phisguard-btn phisguard-btn-info" id="view-details-btn" title="View comprehensive security analysis">
           🔍 Details
         </button>
-        <button class="phisguard-btn phisguard-btn-secondary" onclick="dismissWarning()" title="Hide this warning">
+        <button class="phisguard-btn phisguard-btn-secondary" id="dismiss-warning-btn" title="Hide this warning">
           Dismiss
         </button>
-        <button class="phisguard-btn phisguard-btn-danger" onclick="leavePage()" title="Leave this website immediately">
+        <button class="phisguard-btn phisguard-btn-danger" id="leave-site-btn" title="Leave this website immediately">
           🚪 Leave Site
         </button>
       </div>
@@ -680,17 +1017,21 @@ function showWarningBanner(riskData) {
     }
   `;
 
-  // Add functions to window
-  window.dismissWarning = function() {
-    banner.remove();
-    style.remove();
-  };
 
-  window.viewDetails = function() {
-    const detailsList = riskData.details || [];
-    const formattedDetails = detailsList.map(detail => `• ${detail}`).join('\n');
+  document.head.appendChild(style);
+  document.body.insertBefore(banner, document.body.firstChild);
 
-    const details = `
+  // Add event listeners programmatically
+  const viewDetailsBtn = banner.querySelector('#view-details-btn');
+  const dismissBtn = banner.querySelector('#dismiss-warning-btn');
+  const leaveBtn = banner.querySelector('#leave-site-btn');
+
+  if (viewDetailsBtn) {
+    viewDetailsBtn.addEventListener('click', function() {
+      const detailsList = riskData.details || [];
+      const formattedDetails = detailsList.map(detail => `• ${detail}`).join('\n');
+
+      const details = `
 Security Analysis Results:
 
 Risk Score: ${riskScore}/100
@@ -701,19 +1042,27 @@ ${formattedDetails || 'No analysis details available'}
 
 Recommendations:
 ${getDetailedRecommendations(riskLevel)}
-    `.trim();
+      `.trim();
 
-    alert(details);
-  };
+      alert(details);
+    });
+  }
 
-  window.leavePage = function() {
-    if (confirm('Are you sure you want to leave this page?')) {
-      window.history.back();
-    }
-  };
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', function() {
+      banner.remove();
+      style.remove();
+      document.body.style.paddingTop = '';
+    });
+  }
 
-  document.head.appendChild(style);
-  document.body.insertBefore(banner, document.body.firstChild);
+  if (leaveBtn) {
+    leaveBtn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to leave this page?')) {
+        window.history.back();
+      }
+    });
+  }
 
   // Adjust body padding to account for fixed banner
   document.body.style.paddingTop = '60px';
@@ -902,15 +1251,61 @@ function addIndicator(link, riskData) {
   link.parentNode.insertBefore(actionButton, link.nextSibling);
 }
 
+// Function to filter links that should be checked
+function shouldCheckLink(url) {
+  if (!url) return false;
+
+  // Skip non-HTTP protocols
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false;
+  }
+
+  // Skip internal Chrome pages and extensions
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
+      url.startsWith('about:') || url.startsWith('file://')) {
+    return false;
+  }
+
+  // Skip very short URLs (likely fragments or relative paths)
+  if (url.length < 10) {
+    return false;
+  }
+
+  // Skip URLs without proper domain structure
+  if (!url.includes('.') || url.split('.').length < 2) {
+    return false;
+  }
+
+  // Skip obvious safe internal links (relative paths, anchors)
+  if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+    return false;
+  }
+
+  // Skip same-domain links (likely internal navigation)
+  try {
+    const linkDomain = new URL(url).hostname;
+    const currentDomain = window.location.hostname;
+    if (linkDomain === currentDomain) {
+      return false;
+    }
+  } catch (e) {
+    // If URL parsing fails, skip it
+    return false;
+  }
+
+  return true;
+}
+
 // Function to process a batch of links
 async function processLinks(links) {
-  const validLinks = Array.from(links).filter(link => {
-    const url = link.href;
-    return url && !url.startsWith('javascript:') && !url.startsWith('mailto:') && !url.startsWith('#');
-  });
+  const validLinks = Array.from(links).filter(link => shouldCheckLink(link.href));
 
-  // Process links in batches to avoid overwhelming the background script
-  const batchSize = 5;
+  console.log(`PhisGuard: Processing ${validLinks.length} external links out of ${links.length} total links`);
+
+  if (validLinks.length === 0) return;
+
+  // Process links in smaller batches to avoid overwhelming
+  const batchSize = 3; // Reduced batch size
   for (let i = 0; i < validLinks.length; i += batchSize) {
     const batch = validLinks.slice(i, i + batchSize);
     await Promise.all(batch.map(async (link) => {
@@ -924,7 +1319,7 @@ async function processLinks(links) {
       }
     }));
     // Small delay between batches
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200)); // Increased delay
   }
 }
 
@@ -972,6 +1367,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial scan
     setTimeout(scanGmailEmails, 2000); // Wait for Gmail to load
   }
+});
+
+// Also check when page is fully loaded (for better reliability)
+window.addEventListener('load', async () => {
+  console.log('PhisGuard: Page fully loaded, re-checking current page');
+  // Re-check current page when fully loaded
+  await checkCurrentPage();
 });
 
 // Handle dynamic content with MutationObserver
@@ -1092,10 +1494,9 @@ function showSecurityDetailsModal(url, data) {
           </div>
         </div>
 
-        <div class="phisguard-modal-footer">
-          <button class="phisguard-btn phisguard-btn-secondary" onclick="closeSecurityModal()">Close</button>
-          <button class="phisguard-btn phisguard-btn-primary" onclick="openPhisGuardPopup('${url}')">Open PhisGuard</button>
-        </div>
+      <div class="phisguard-modal-footer">
+        <button class="phisguard-btn phisguard-btn-secondary" onclick="closeSecurityModal()">Close</button>
+      </div>
       </div>
     </div>
   `;

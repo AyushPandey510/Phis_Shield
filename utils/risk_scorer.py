@@ -24,7 +24,7 @@ class RiskScorer:
 
         # URL Risk Assessment
         if url_results:
-            url_score = url_results.get('risk_score', 0)
+            url_score = max(0, url_results.get('risk_score', 0))  # Prevent negative scores
             risk_components['url_risk'] = {
                 'score': url_score,
                 'weight': self.weights['url_risk'],
@@ -63,6 +63,7 @@ class RiskScorer:
                     ssl_risk_score = 10  # Low risk for valid SSL
                     ssl_details.append("SSL certificate is valid")
 
+            ssl_risk_score = max(0, ssl_risk_score)  # Prevent negative scores
             risk_components['ssl_risk'] = {
                 'score': ssl_risk_score,
                 'weight': self.weights['ssl_validity'],
@@ -97,6 +98,7 @@ class RiskScorer:
                     redirect_score += 20
                     redirect_details.append("Redirects through URL shorteners detected")
 
+            redirect_score = max(0, redirect_score)  # Prevent negative scores
             risk_components['redirect_risk'] = {
                 'score': redirect_score,
                 'weight': self.weights['link_redirects'],
@@ -121,6 +123,7 @@ class RiskScorer:
                     count = breach_results['email_check'].get('breach_count', 0)
                     breach_details.append(f"Email found in {count} breaches")
 
+            breach_score = max(0, breach_score)  # Prevent negative scores
             risk_components['breach_risk'] = {
                 'score': breach_score,
                 'weight': self.weights['breach_history'],
@@ -140,6 +143,7 @@ class RiskScorer:
             risk_level = analysis.get('risk_level', 'unknown')
             email_details.append(f"Risk level: {risk_level}")
 
+            email_score = max(0, email_score)  # Prevent negative scores
             risk_components['email_text_risk'] = {
                 'score': email_score,
                 'weight': self.weights['email_text_risk'],

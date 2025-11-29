@@ -15,17 +15,6 @@ const resultsContent = document.getElementById('results-content');
 const errorDiv = document.getElementById('error');
 const errorMessage = document.querySelector('.error-message');
 
-// Dashboard elements
-const dashboardBtn = document.getElementById('dashboard-btn');
-const dashboard = document.getElementById('dashboard');
-const refreshDashboardBtn = document.getElementById('refresh-dashboard');
-const downloadReportBtn = document.getElementById('download-report');
-const backToMainBtn = document.getElementById('back-to-main');
-const protectedCount = document.getElementById('protected-count');
-const riskStats = document.getElementById('risk-stats');
-const weeklyChecks = document.getElementById('weekly-checks');
-const recentDetections = document.getElementById('recent-detections');
-const securityTimeline = document.getElementById('security-timeline');
 
 // Feedback elements
 const feedbackSection = document.getElementById('feedback-section');
@@ -43,8 +32,7 @@ const warningSensitivitySelect = document.getElementById('warning-sensitivity');
 // Global variables for feedback
 let currentFeedbackData = null;
 
-// WebSocket/Socket.IO connection
-let socket = null;
+// User ID for tracking
 let userId = null;
 
 // API base URL - configurable for different environments
@@ -57,7 +45,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     getCurrentTabUrl();
     loadWarningSettings();
     setupEventListeners();
-    initializeWebSocket();
 });
 
 // Initialize user ID for persistent tracking across devices
@@ -107,11 +94,6 @@ function setupEventListeners() {
     });
     submitBreachBtn.addEventListener('click', () => performCheck('breach'));
 
-    // Dashboard event listeners
-    dashboardBtn.addEventListener('click', showDashboard);
-    refreshDashboardBtn.addEventListener('click', loadDashboardData);
-    downloadReportBtn.addEventListener('click', downloadSecurityReport);
-    backToMainBtn.addEventListener('click', hideDashboard);
 
     // Feedback event listeners
     feedbackCorrectBtn.addEventListener('click', () => handleFeedback(true));
@@ -239,6 +221,11 @@ function displayResults(type, data) {
             const riskBarWidth = riskPercentage;
             const riskBarColor = riskPercentage >= 70 ? '#e74c3c' : riskPercentage >= 40 ? '#f39c12' : '#27ae60';
 
+            // Safely handle details array
+            const detailsHtml = (data.details && Array.isArray(data.details) && data.details.length > 0)
+                ? `<ul>${data.details.map(detail => `<li>${detail}</li>`).join('')}</ul>`
+                : '<p>No analysis details available</p>';
+
             html = `
                 <div class="result-item">
                     <strong>URL:</strong> ${data.url}<br>
@@ -252,9 +239,7 @@ function displayResults(type, data) {
                     <strong>Recommendation:</strong> <span class="${riskClass}">${data.recommendation.toUpperCase()}</span><br>
                     <div class="details-section">
                         <strong>Analysis Details:</strong>
-                        <ul>
-                            ${data.details.map(detail => `<li>${detail}</li>`).join('')}
-                        </ul>
+                        ${detailsHtml}
                     </div>
                 </div>
             `;
@@ -506,296 +491,3 @@ function saveWarningSettings() {
     });
 }
 
-// Dashboard functions
-async function showDashboard() {
-    // Hide main interface
-    document.querySelector('.container > header').classList.add('hidden');
-    document.querySelector('.url-section').classList.add('hidden');
-    document.querySelector('.buttons-section').classList.add('hidden');
-    document.querySelector('.settings-section').classList.add('hidden');
-    document.getElementById('breach-inputs').classList.add('hidden');
-    loading.classList.add('hidden');
-    results.classList.add('hidden');
-    errorDiv.classList.add('hidden');
-
-    // Show dashboard
-    dashboard.classList.remove('hidden');
-
-    // Load any pending detections from storage
-    loadPendingDetections();
-
-    // Load dashboard data
-    await loadDashboardData();
-}
-
-function hideDashboard() {
-    // Hide dashboard
-    dashboard.classList.add('hidden');
-
-    // Show main interface
-    document.querySelector('.container > header').classList.remove('hidden');
-    document.querySelector('.url-section').classList.remove('hidden');
-    document.querySelector('.buttons-section').classList.remove('hidden');
-    document.querySelector('.settings-section').classList.remove('hidden');
-}
-
-async function loadDashboardData() {
-    try {
-        showLoading();
-
-        // Fetch user security data from backend with user ID
-        const url = userId ? `${API_BASE}/user/security-dashboard?user_id=${encodeURIComponent(userId)}` : `${API_BASE}/user/security-dashboard`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': 'a0c674401be58be8eb1929239742b625'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        displayDashboardData(data);
-
-    } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        showError('Failed to load dashboard data. Please try again.');
-    } finally {
-        hideLoading();
-    }
-}
-
-function displayDashboardData(data) {
-    // Update statistics
-    protectedCount.textContent = data.protected_count || 0;
-    document.getElementById('high-risk').textContent = data.high_risk_count || 0;
-    document.getElementById('medium-risk').textContent = data.medium_risk_count || 0;
-    document.getElementById('low-risk').textContent = data.low_risk_count || 0;
-    weeklyChecks.textContent = data.weekly_checks || 0;
-
-    // Update recent detections
-    const detectionsHtml = (data.recent_detections || []).map(detection => `
-        <div class="detection-item">
-            <div class="url">${detection.url}</div>
-            <div class="details">
-                <span>${new Date(detection.timestamp).toLocaleDateString()}</span>
-                <span class="risk-level ${detection.risk_level}">${detection.risk_level}</span>
-            </div>
-        </div>
-    `).join('');
-
-    recentDetections.innerHTML = detectionsHtml || '<div class="loading">No recent detections found</div>';
-
-    // Update security timeline
-    const timelineHtml = (data.security_timeline || []).map(event => `
-        <div class="timeline-item">
-            <div class="time">${new Date(event.timestamp).toLocaleString()}</div>
-            <div class="event">${event.event}</div>
-        </div>
-    `).join('');
-
-    securityTimeline.innerHTML = timelineHtml || '<div class="loading">No security events found</div>';
-
-    // Update threat chart (simplified version)
-    updateThreatChart(data.threat_categories || {});
-}
-
-function updateThreatChart(categories) {
-    // Simple text-based chart for now
-    const chartContainer = document.getElementById('threatChart').parentElement;
-    const chartHtml = Object.entries(categories).map(([category, count]) => `
-        <div style="margin: 5px 0;">
-            <span style="display: inline-block; width: 120px;">${category}:</span>
-            <span style="display: inline-block; width: ${Math.min(count * 10, 100)}px; background: #3498db; color: white; text-align: center; border-radius: 3px;">${count}</span>
-        </div>
-    `).join('');
-
-    document.getElementById('threatChart').style.display = 'none';
-    chartContainer.innerHTML += '<div style="padding: 10px;">' + (chartHtml || 'No threat data available') + '</div>';
-}
-
-async function downloadSecurityReport() {
-    try {
-        showLoading();
-
-        const url = userId ? `${API_BASE}/user/security-report?user_id=${encodeURIComponent(userId)}` : `${API_BASE}/user/security-report`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': 'dev-api-key-change-this-in-production-1234567890123456'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Create and download the report
-        const reportContent = generateSecurityReport(data);
-        const blob = new Blob([reportContent], { type: 'text/plain' });
-        const url_blob = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url_blob;
-        a.download = `phisguard-security-report-${new Date().toISOString().split('T')[0]}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url_blob);
-
-    } catch (error) {
-        console.error('Error downloading report:', error);
-        showError('Failed to download security report. Please try again.');
-    } finally {
-        hideLoading();
-    }
-}
-
-function generateSecurityReport(data) {
-    return `
-PHISGUARD SECURITY REPORT
-Generated: ${new Date().toLocaleString()}
-
-SECURITY STATISTICS
-==================
-URLs Protected: ${data.protected_count || 0}
-High Risk Detections: ${data.high_risk_count || 0}
-Medium Risk Detections: ${data.medium_risk_count || 0}
-Low Risk Detections: ${data.low_risk_count || 0}
-Weekly Security Checks: ${data.weekly_checks || 0}
-
-RECENT DETECTIONS
-=================
-${(data.recent_detections || []).map(d => `${d.timestamp}: ${d.url} (${d.risk_level})`).join('\n')}
-
-SECURITY TIMELINE
-================
-${(data.security_timeline || []).map(e => `${e.timestamp}: ${e.event}`).join('\n')}
-
-THREAT CATEGORIES
-================
-${Object.entries(data.threat_categories || {}).map(([cat, count]) => `${cat}: ${count}`).join('\n')}
-
-This report was generated by PhisGuard Security Extension.
-For more information, visit the extension dashboard.
-`;
-}
-
-// WebSocket/Socket.IO functions for real-time updates
-function initializeWebSocket() {
-    try {
-        // Initialize Socket.IO connection
-        socket = io(API_BASE, {
-            transports: ['websocket', 'polling'],
-            timeout: 20000,
-            forceNew: true
-        });
-
-        // Connection event handlers
-        socket.on('connect', () => {
-            console.log('PhisGuard: Connected to real-time server');
-            // Join dashboard room for user-specific updates
-            if (userId) {
-                socket.emit('join_dashboard', { user_id: userId });
-            }
-        });
-
-        socket.on('disconnect', () => {
-            console.log('PhisGuard: Disconnected from real-time server');
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('PhisGuard: WebSocket connection error:', error);
-        });
-
-        // Real-time event handlers
-        socket.on('high_risk_detected', (data) => {
-            console.log('PhisGuard: High-risk detection received:', data);
-            handleRealTimeDetection(data);
-        });
-
-        socket.on('dashboard_joined', (data) => {
-            console.log('PhisGuard: Joined dashboard room:', data);
-        });
-
-        socket.on('connected', (data) => {
-            console.log('PhisGuard: WebSocket connected:', data);
-        });
-
-    } catch (error) {
-        console.error('PhisGuard: Failed to initialize WebSocket:', error);
-    }
-}
-
-function handleRealTimeDetection(detectionData) {
-    // Only update if dashboard is currently visible
-    if (!dashboard.classList.contains('hidden')) {
-        // Show a notification or update the dashboard
-        showRealTimeNotification(detectionData);
-
-        // Refresh dashboard data to show the new detection
-        loadDashboardData();
-    } else {
-        // Store the detection for when dashboard is opened
-        storePendingDetection(detectionData);
-    }
-}
-
-function showRealTimeNotification(detectionData) {
-    // Create a temporary notification in the dashboard
-    const notification = document.createElement('div');
-    notification.className = 'real-time-notification';
-    notification.innerHTML = `
-        <div class="notification-content">
-            <strong>🚨 High-Risk URL Detected!</strong><br>
-            <small>${detectionData.url}</small><br>
-            <small>Risk Score: ${detectionData.risk_score}/100</small>
-        </div>
-        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
-    `;
-
-    // Add to dashboard
-    dashboard.insertBefore(notification, dashboard.firstChild);
-
-    // Auto-remove after 10 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 10000);
-}
-
-function storePendingDetection(detectionData) {
-    // Store pending detections in chrome storage
-    chrome.storage.local.get(['pending_detections'], (result) => {
-        const pending = result.pending_detections || [];
-        pending.unshift(detectionData);
-
-        // Keep only last 5 pending detections
-        if (pending.length > 5) {
-            pending.splice(5);
-        }
-
-        chrome.storage.local.set({ pending_detections: pending });
-    });
-}
-
-// Load and display any pending detections when dashboard opens
-function loadPendingDetections() {
-    chrome.storage.local.get(['pending_detections'], (result) => {
-        const pending = result.pending_detections || [];
-        if (pending.length > 0) {
-            // Show the most recent pending detection
-            showRealTimeNotification(pending[0]);
-
-            // Clear pending detections after showing
-            chrome.storage.local.set({ pending_detections: [] });
-        }
-    });
-}

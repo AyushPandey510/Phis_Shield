@@ -5,8 +5,8 @@ console.log('PhisGuard: Background service worker starting...');
 
 // API Base URL - configurable for different environments
 const API_BASE_URL = chrome.runtime.getManifest().manifest_version === 3
-  ? 'http://localhost:5001' // Production default - updated to match development server
-  : 'http://localhost:5001'; // Fallback for development - updated to match development server
+  ? 'http://localhost:5000' // Production default - updated to match development server
+  : 'http://localhost:5000'; // Fallback for development - updated to match development server
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const COMPREHENSIVE_CACHE_EXPIRY = 2 * 60 * 60 * 1000; // 2 hours for comprehensive checks (shorter for security)
 const RATE_LIMIT_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes for rate-limited responses

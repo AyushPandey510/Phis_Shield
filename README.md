@@ -2,6 +2,12 @@
 
 PhisGuard is a comprehensive security analysis system consisting of a Flask backend API and a Chrome extension for real-time phishing detection and security assessment.
 
+##Please open this link to watch the demo 
+https://www.youtube.com/watch?v=phdc5xnySxg
+
+##Please open this link to view the pitch deck
+https://drive.google.com/file/d/1HEctLMFz3B9iqOwCyuSiYJlMXt_zRc0T/view?usp=sharing
+
 ## 🏗️ System Overview
 
 - **Backend API**: RESTful Flask service providing security analysis endpoints
